@@ -54,8 +54,8 @@
 	},
 	{
 	    "name": "Rolladen EG Kueche Tuer",
-	    "output_up":   { "id":"eg", "bit":32 },
-	    "output_down": { "id":"eg", "bit":33 },
+	    "output_up":   { "id":"eg", "bit":33 },
+	    "output_down": { "id":"eg", "bit":32 },
 	    "input_up":   { "id":"eg", "bit":3 },
 	    "input_down": { "id":"eg", "bit":2 },
 	    "runtime_up": 90,
