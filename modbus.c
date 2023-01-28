@@ -15,6 +15,11 @@
 #include <string.h>
 #include <sys/inotify.h>
 
+#ifdef SYSTEMD
+#include <systemd/sd-daemon.h>
+#endif
+
+#define MSEC(x) ((x) * 1000 * 1000)
 #define ARRAY_SIZE(x) (sizeof(x)/sizeof(x[0]))
 
 static int shouldexit;
@@ -571,7 +576,7 @@ int main(void)
 	struct modbus_coupler *coupler;
 	struct config *config = NULL, *config_new;
 	int i, ifd, wd;
-
+	int watchdog_cnt = 0, ready_signaled;
 	ifd = inotify_init1(IN_NONBLOCK);
 	if (ifd == -1) {
 		fprintf(stderr, "failed to create inotify fd: %m\n");
@@ -590,6 +595,10 @@ int main(void)
 
 	while(!shouldexit) {
 		if (!config || check_inotify(ifd, wd) == 1) {
+#ifdef SYSTEMD
+			sd_notifyf(0, "RELOADING=1\n");
+			ready_signaled=0;
+#endif
 			config_new = read_config();
 			if (config_new) {
 				free_config(config);
@@ -632,9 +641,22 @@ int main(void)
 //			DEBUG("\n");
 			modbus_write_registers(coupler->modbus, 0, 8, (uint16_t *)&coupler->data_out);
 		}
+#ifdef SYSTEMD
+		if (!ready_signaled) {
+			sd_notifyf(0, "READY=1\n"
+					"STATUS=Processing requests...\n"
+					"MAINPID=%lu",
+			   (unsigned long) getpid());
+			ready_signaled = 1;
+		}
+		if (watchdog_cnt++ > 100) {
+			watchdog_cnt = 0;
+			sd_notifyf(0, "WATCHDOG=1\n");
 
+		}
+#endif
 		req.tv_sec = 0;
-		req.tv_nsec = 20000000;
+		req.tv_nsec = MSEC(50);
 		while (nanosleep(&req, &rem) == -1 && errno == EINTR)
 			req = rem;
 	}
