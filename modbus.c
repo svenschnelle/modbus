@@ -52,8 +52,8 @@ struct modbus_coupler {
 	char *id;
 	char *ip;
 	int port;
-	uint8_t data_in[32];
-	uint8_t data_out[32]; // FIXME: dynamic alloc
+	uint8_t data_in[64];
+	uint8_t data_out[64]; // FIXME: dynamic alloc
 	int data_in_len;
 	int data_out_len;
 	modbus_t *modbus;
@@ -63,6 +63,7 @@ struct blind {
 	char *name;
 	bool automatic_up;
 	bool automatic_down;
+	bool last_auto_state;
 	int runtime_up;
 	int runtime_down;
 	time_t up_not_before;
@@ -237,12 +238,30 @@ static void update_blind_button(struct blind *b, struct timespec *now)
 	}
 }
 
-static void update_blind_auto(struct blind *b, struct timespec *now)
+static struct modbus_coupler *get_coupler_by_id(struct config *config, const char *id)
 {
+	int i;
+
+	for (i = 0; i < config->coupler_count; i++) {
+		if (!strcmp(config->couplers[i].id, id))
+			return &config->couplers[i];
+	}
+	return NULL;
+}
+
+static void update_blind_auto(struct config *config, struct blind *b, struct timespec *now)
+{
+	struct modbus_coupler *c = get_coupler_by_id(config, "dg");
 	struct timespec end = { 0, 0 }, ts = { 60, 0 };
 	unsigned int tod;
 	struct tm tm;
 	time_t ltime;
+	bool blind_state = false;
+
+	if (c)
+		blind_state = get_input(c->data_in, 22);
+	else
+		b->last_auto_state = blind_state;
 
 	ltime = time(NULL);
 	if (!localtime_r(&ltime, &tm)) {
@@ -251,7 +270,8 @@ static void update_blind_auto(struct blind *b, struct timespec *now)
 	}
 
 	tod = tm.tm_hour * 3600 + tm.tm_min * 60;
-	if (tod == b->time_up) {
+
+	if ((tod == b->time_up) || (b->automatic_up && blind_state == false && b->last_auto_state == true)) {
 		DEBUG("auto_up matched\n");
 		end.tv_sec += b->runtime_up;
 		end = timespec_add(*now, end);
@@ -259,8 +279,10 @@ static void update_blind_auto(struct blind *b, struct timespec *now)
 		set_output(&b->output_down, false, NULL);
 		b->last_update = timespec_add(*now, ts);
 	}
+	if (blind_state != b->last_auto_state)
+		DEBUG("%s: %d %d aup %d adown %d\n", b->name, blind_state, b->last_auto_state, b->automatic_up, b->automatic_down);
 
-	if (tod == b->time_down) {
+	if ((tod == b->time_down) || (b->automatic_down && blind_state == true && b->last_auto_state == false)) {
 		DEBUG("auto_down matched\n");
 		end.tv_sec += b->runtime_down;
 		end = timespec_add(*now, end);
@@ -269,6 +291,7 @@ static void update_blind_auto(struct blind *b, struct timespec *now)
 		b->last_update = timespec_add(*now, ts);
 
 	}
+	b->last_auto_state = blind_state;
 }
 
 static void update_blinds(struct config *config, struct timespec *now)
@@ -280,7 +303,7 @@ static void update_blinds(struct config *config, struct timespec *now)
 		b = config->blinds + i;
 		update_blind_button(b, now);
 		if (timespec_le(b->last_update, *now))
-			update_blind_auto(b, now);
+			update_blind_auto(config, b, now);
 	}
 }
 
@@ -347,17 +370,6 @@ static int json_get_int_with_default(struct json_object *obj, const char *name, 
 	if (!tmp)
 		return dflt;
 	return json_object_get_int(tmp);
-}
-
-static struct modbus_coupler *get_coupler_by_id(struct config *config, const char *id)
-{
-	int i;
-
-	for (i = 0; i < config->coupler_count; i++) {
-		if (!strcmp(config->couplers[i].id, id))
-			return &config->couplers[i];
-	}
-	return NULL;
 }
 
 static int json_parse_output(struct json_object *obj, struct config *config, const char *name, struct output *output)
@@ -570,6 +582,25 @@ static void signal_handler(int sig)
 	shouldexit = 1;
 }
 
+static int reconnect_coupler(struct modbus_coupler *c)
+{
+	if (c->modbus) {
+		modbus_close(c->modbus);
+		modbus_free(c->modbus);
+		c->modbus = NULL;
+	}
+
+	c->modbus = modbus_new_tcp(c->ip, c->port);
+	if (modbus_connect(c->modbus) == -1) {
+		fprintf(stderr, "modbus_connect %s:%d: %s\n", c->ip, c->port, modbus_strerror(errno));
+		modbus_free(c->modbus);
+		c->modbus = NULL;
+	} else {
+		DEBUG("connected to %s:%d\n", c->ip, c->port);
+	}
+	return c->modbus ? 0 : -EIO;
+}
+
 int main(void)
 {
 	struct timespec now, req, rem;
@@ -605,8 +636,7 @@ int main(void)
 				config = config_new;
 				for (i = 0; i < config->coupler_count; i++) {
 					coupler = config->couplers + i;
-					coupler->modbus = modbus_new_tcp(coupler->ip, coupler->port);
-					modbus_connect(coupler->modbus);
+					reconnect_coupler(coupler);
 				}
 				DEBUG("config reload done\n");
 			} else {
@@ -626,20 +656,24 @@ int main(void)
 
 		for (i = 0; i < config->coupler_count; i++) {
 			coupler = config->couplers + i;
-			modbus_read_registers(coupler->modbus, 0, 8, (uint16_t *)&coupler->data_in);
-//			for (i = 0; i < 16; i++)
-//				DEBUG(" %02X", coupler->data_in[i]);
-//			DEBUG("\n");
+			if (modbus_read_registers(coupler->modbus, 0, 16, (uint16_t *)&coupler->data_in) == -1) {
+				fprintf(stderr, "modbus_read_registers: %s:%d %s\n",
+						coupler->ip, coupler->port, modbus_strerror(errno));
+				if (errno == EPIPE || errno == ECONNRESET)
+					reconnect_coupler(coupler);
+			}
 		}
 		update_blinds(config, &now);
 		update_outputs(config, &now);
 
 		for (i = 0; i < config->coupler_count; i++) {
 			coupler = config->couplers + i;
-//			for (i = 0; i < 16; i++)
-//				DEBUG(" %02X", coupler->data_out[i]);
-//			DEBUG("\n");
-			modbus_write_registers(coupler->modbus, 0, 8, (uint16_t *)&coupler->data_out);
+			if (modbus_write_registers(coupler->modbus, 0, 8, (uint16_t *)&coupler->data_out) == -1) {
+				fprintf(stderr, "modbus_write_registers: %s:%d %s\n",
+						coupler->ip, coupler->port, modbus_strerror(errno));
+				if (errno == EPIPE || errno == ECONNRESET)
+					reconnect_coupler(coupler);
+			}
 		}
 #ifdef SYSTEMD
 		if (!ready_signaled) {
@@ -660,6 +694,6 @@ int main(void)
 		while (nanosleep(&req, &rem) == -1 && errno == EINTR)
 			req = rem;
 	}
-	free_config(config);
 out:
+	free_config(config);
 }

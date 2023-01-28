@@ -17,9 +17,9 @@
 	    "input_up":   { "id":"eg", "bit":17 },
 	    "input_down": { "id":"eg", "bit":16 },
 	    "runtime_up": 90,
-	    "runtime_down": 90,
-	    "automatic_up": 0,
-	    "automatic_down": 0,
+	    "runtime_down": 19,
+	    "automatic_up": 1,
+	    "automatic_down": 1,
 	    "not_up_before": "",
 	    "time_up": "",
 	    "time_down": ""
@@ -32,8 +32,8 @@
 	    "input_down": { "id":"eg", "bit":18 },
 	    "runtime_up": 90,
 	    "runtime_down": 90,
-	    "automatic_up": 0,
-	    "automatic_down": 0,
+	    "automatic_up": 1,
+	    "automatic_down": 1,
 	    "not_up_before": "",
 	    "time_up": "",
 	    "time_down": ""
@@ -46,10 +46,10 @@
 	    "input_down": { "id":"eg", "bit":14 },
 	    "runtime_up": 90,
 	    "runtime_down": 90,
-	    "automatic_up": 0,
-	    "automatic_down": 0,
+	    "automatic_up": 1,
+	    "automatic_down": 1,
 	    "not_up_before": "",
-	    "time_up": "18:35",
+	    "time_up": "",
 	    "time_down": ""
 	},
 	{
@@ -74,8 +74,8 @@
 	    "input_down": { "id":"eg", "bit":0 },
 	    "runtime_up": 90,
 	    "runtime_down": 90,
-	    "automatic_up": 0,
-	    "automatic_down": 0,
+	    "automatic_up": 1,
+	    "automatic_down": 1,
 	    "not_up_before": "",
 	    "time_up": "",
 	    "time_down": ""
@@ -88,8 +88,8 @@
 	    "input_down": { "id":"eg", "bit":6 },
 	    "runtime_up": 90,
 	    "runtime_down": 90,
-	    "automatic_up": 0,
-	    "automatic_down": 0,
+	    "automatic_up": 1,
+	    "automatic_down": 1,
 	    "not_up_before": "",
 	    "time_up": "",
 	    "time_down": ""
@@ -106,7 +106,7 @@
 	    "automatic_down": 0,
 	    "not_up_before": "",
 	    "time_up": "",
-	    "time_down": "4:30"
+	    "time_down": "5:00"
 	},
 	{
 	    "name": "Rolladen WC",
@@ -116,8 +116,8 @@
 	    "input_down": { "id":"eg", "bit":4 },
 	    "runtime_up": 90,
 	    "runtime_down": 90,
-	    "automatic_up": 0,
-	    "automatic_down": 0,
+	    "automatic_up": 1,
+	    "automatic_down": 1,
 	    "not_up_before": "",
 	    "time_up": "",
 	    "time_down": ""
@@ -130,8 +130,8 @@
 	    "input_down": { "id":"eg", "bit":10 },
 	    "runtime_up": 90,
 	    "runtime_down": 90,
-	    "automatic_up": 0,
-	    "automatic_down": 0,
+	    "automatic_up": 1,
+	    "automatic_down": 1,
 	    "not_up_before": "",
 	    "time_up": "",
 	    "time_down": ""
@@ -140,8 +140,8 @@
 	    "name": "Rolladen DG Badfenster",
 	    "output_up":   { "id":"dg", "bit":5 },
 	    "output_down": { "id":"dg", "bit":7 },
-	    "input_up":   { "id":"dg", "bit":0 },
-	    "input_down": { "id":"dg", "bit":1 },
+	    "input_up":   { "id":"dg", "bit":2 },
+	    "input_down": { "id":"dg", "bit":3 },
 	    "runtime_up": 90,
 	    "runtime_down": 90,
 	    "automatic_up": 0,
@@ -154,8 +154,8 @@
 	    "name": "Rolladen DG Bad Dach",
 	    "output_up":   { "id":"dg", "bit":9 },
 	    "output_down": { "id":"dg", "bit":8 },
-	    "input_up":   { "id":"dg", "bit":2 },
-	    "input_down": { "id":"dg", "bit":3 },
+	    "input_up":   { "id":"dg", "bit":0 },
+	    "input_down": { "id":"dg", "bit":1 },
 	    "runtime_up": 90,
 	    "runtime_down": 90,
 	    "automatic_up": 0,
@@ -170,10 +170,10 @@
 	    "output_down": { "id":"dg", "bit":6 },
 	    "input_up":   { "id":"dg", "bit":4 },
 	    "input_down": { "id":"dg", "bit":5 },
-	    "runtime_up": 90,
-	    "runtime_down": 90,
-	    "automatic_up": 0,
-	    "automatic_down": 0,
+	    "runtime_up": 30,
+	    "runtime_down": 30,
+	    "automatic_up": 1,
+	    "automatic_down": 1,
 	    "not_up_before": "7:00",
 	    "time_up": "",
 	    "time_down": ""
@@ -194,14 +194,14 @@
 	},
 	{
 	    "name": "Rolladen DG Mitte unten",
-	    "output_up":   { "id":"dg", "bit":20 },
-	    "output_down": { "id":"dg", "bit":21 },
+	    "output_up":   { "id":"dg", "bit":21 },
+	    "output_down": { "id":"dg", "bit":20 },
 	    "input_up":   { "id":"dg", "bit":8 },
 	    "input_down": { "id":"dg", "bit":9 },
 	    "runtime_up": 90,
 	    "runtime_down": 90,
 	    "automatic_up": 0,
-	    "automatic_down": 0,
+	    "automatic_down": 1,
 	    "not_up_before": "",
 	    "time_up": "",
 	    "time_down": ""
@@ -246,7 +246,7 @@
 	    "automatic_down": 0,
 	    "not_up_before": "",
 	    "time_up": "",
-	    "time_down": "4:30"
+	    "time_down": ""
 	},
 	{
 	    "name": "Rolladen DG Alex Dach 1",
@@ -288,7 +288,7 @@
 	    "automatic_down": 0,
 	    "not_up_before": "",
 	    "time_up": "",
-	    "time_down": "4:30"
+	    "time_down": "5:00"
 	}
     ]
 }
