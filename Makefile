@@ -3,7 +3,7 @@ LDFLAGS=-lmodbus -ljson-c
 all: modbus
 
 modbus: modbus.o timespec.o
-	$(CC) $(LDFLAGS) -o $@ $^
+	$(CC) -o $@ $^ $(LDFLAGS)
 
 %.o:	%.c Makefile
 	$(CC) $(CFLAGS) -c -o $@ $<
