@@ -106,7 +106,7 @@
 	    "automatic_down": 0,
 	    "not_up_before": "",
 	    "time_up": "",
-	    "time_down": "5:00"
+	    "time_down": ""
 	},
 	{
 	    "name": "Rolladen WC",
@@ -288,7 +288,7 @@
 	    "automatic_down": 0,
 	    "not_up_before": "",
 	    "time_up": "",
-	    "time_down": "5:00"
+	    "time_down": ""
 	}
     ]
 }
