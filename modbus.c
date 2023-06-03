@@ -271,7 +271,7 @@ static void update_blind_auto(struct config *config, struct blind *b, struct tim
 
 	tod = tm.tm_hour * 3600 + tm.tm_min * 60;
 
-	if ((tod == b->time_up) || (b->automatic_up && blind_state == false && b->last_auto_state == true)) {
+	if ((tod == b->time_up) || (b->automatic_up && tod > b->up_not_before && blind_state == false && b->last_auto_state == true)) {
 		DEBUG("auto_up matched\n");
 		end.tv_sec += b->runtime_up;
 		end = timespec_add(*now, end);
@@ -304,6 +304,7 @@ static void update_blinds(struct config *config, struct timespec *now)
 		update_blind_button(b, now);
 		if (timespec_le(b->last_update, *now))
 			update_blind_auto(config, b, now);
+
 	}
 }
 
@@ -446,7 +447,7 @@ static int parse_blind(struct config *config,
 		return -1;
 	}
 	blind->automatic_up = json_get_int_with_default(obj, "automatic_up", 0);
-	blind->automatic_down = json_get_int_with_default(obj, "automatic_up", 0);
+	blind->automatic_down = json_get_int_with_default(obj, "automatic_down", 0);
 	blind->runtime_up = json_get_int_with_default(obj, "runtime_up", 90);
 	blind->runtime_down = json_get_int_with_default(obj, "runtime_down", 90);
 	blind->time_up = json_get_time(blind->name, obj, "time_up");
@@ -659,7 +660,7 @@ int main(void)
 			if (modbus_read_registers(coupler->modbus, 0, 16, (uint16_t *)&coupler->data_in) == -1) {
 				fprintf(stderr, "modbus_read_registers: %s:%d %s\n",
 						coupler->ip, coupler->port, modbus_strerror(errno));
-				if (errno == EPIPE || errno == ECONNRESET)
+					sleep(10);
 					reconnect_coupler(coupler);
 			}
 		}
@@ -671,7 +672,7 @@ int main(void)
 			if (modbus_write_registers(coupler->modbus, 0, 8, (uint16_t *)&coupler->data_out) == -1) {
 				fprintf(stderr, "modbus_write_registers: %s:%d %s\n",
 						coupler->ip, coupler->port, modbus_strerror(errno));
-				if (errno == EPIPE || errno == ECONNRESET)
+					sleep(10);
 					reconnect_coupler(coupler);
 			}
 		}
