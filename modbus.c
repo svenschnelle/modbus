@@ -249,19 +249,48 @@ static struct modbus_coupler *get_coupler_by_id(struct config *config, const cha
 	return NULL;
 }
 
+static bool blind_up(bool blind_state, unsigned int tod, struct blind *b)
+{
+	if (tod == b->time_up)
+		return true;
+	if (!b->automatic_up)
+	       return false;
+	if (tod < b->up_not_before)
+	       return false;
+	if (blind_state)
+	       return false;
+	if (!b->last_auto_state)
+		return false;
+	return true;
+}
+
+static bool blind_down(bool blind_state, unsigned int tod, struct blind *b)
+{
+	if (tod == b->time_down)
+		return true;
+	if (!b->automatic_down)
+		return false;
+	if (!blind_state)
+		return false;
+	if (b->last_auto_state)
+		return false;
+	return true;
+}
+
 static void update_blind_auto(struct config *config, struct blind *b, struct timespec *now)
 {
-	struct modbus_coupler *c = get_coupler_by_id(config, "dg");
+	struct modbus_coupler *c;
 	struct timespec end = { 0, 0 }, ts = { 60, 0 };
 	unsigned int tod;
 	struct tm tm;
 	time_t ltime;
 	bool blind_state = false;
 
-	if (c)
-		blind_state = get_input(c->data_in, 22);
-	else
-		b->last_auto_state = blind_state;
+	c = get_coupler_by_id(config, "dg");
+	if (!c)
+		return;
+
+	blind_state = get_input(c->data_in, 22);
 
 	ltime = time(NULL);
 	if (!localtime_r(&ltime, &tm)) {
@@ -271,27 +300,23 @@ static void update_blind_auto(struct config *config, struct blind *b, struct tim
 
 	tod = tm.tm_hour * 3600 + tm.tm_min * 60;
 
-	if ((tod == b->time_up) || (b->automatic_up && tod > b->up_not_before && blind_state == false && b->last_auto_state == true)) {
-		DEBUG("auto_up matched\n");
+	if (blind_up(blind_state, tod, b)) {
 		end.tv_sec += b->runtime_up;
 		end = timespec_add(*now, end);
 		set_output(&b->output_up, true, &end);
 		set_output(&b->output_down, false, NULL);
 		b->last_update = timespec_add(*now, ts);
+		b->last_auto_state = blind_state;
 	}
-	if (blind_state != b->last_auto_state)
-		DEBUG("%s: %d %d aup %d adown %d\n", b->name, blind_state, b->last_auto_state, b->automatic_up, b->automatic_down);
 
-	if ((tod == b->time_down) || (b->automatic_down && blind_state == true && b->last_auto_state == false)) {
-		DEBUG("auto_down matched\n");
+	if (blind_down(blind_state, tod, b)) {
 		end.tv_sec += b->runtime_down;
 		end = timespec_add(*now, end);
 		set_output(&b->output_down, true, &end);
 		set_output(&b->output_up, false, NULL);
 		b->last_update = timespec_add(*now, ts);
-
+		b->last_auto_state = blind_state;
 	}
-	b->last_auto_state = blind_state;
 }
 
 static void update_blinds(struct config *config, struct timespec *now)
